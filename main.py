@@ -44,7 +44,7 @@ async def ask_ai_stream(payload: ChatMessage):
     # === NHÁNH 2: GỌI HÀM DATABASE THEO YÊU CẦU CỦA AI ===
     if intent == "query_knowledge":
         knowledge = db.query_knowledge(args.get("ten_mon", ""))
-        elif intent == "query_roadmap":
+    elif intent == "query_roadmap":
         ten_nganh = args.get("ten_nganh", "")
         hoc_ky = args.get("hoc_ky")
 
