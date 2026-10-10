@@ -50,20 +50,21 @@ class Neo4jManager:
             results = session.run(cypher, search_query=search_query)
             return [dict(r) for r in results]
 
-    def query_roadmap(self, nganh, hoc_ky):
+    def query_roadmap(self, nganh, hoc_ky=None):
         with self.driver.session() as session:
-            # Dùng toLower và CONTAINS để truy vấn linh hoạt, không sợ sai hoa/thường
+            # The caller resolves one canonical major; no mixing similar names.
             cypher = """
-            MATCH (c:Course)-[:THUOC_NGANH]->(m:Major)
-            WHERE toLower(m.name) CONTAINS toLower($nganh)
-              AND c.semester = $hk
-            RETURN c.name AS name, c.credits AS tc, c.semester AS hk
-            LIMIT 10
+            MATCH (c:Course)-[r:THUOC_NGANH]->(m:Major)
+            WHERE m.name = $nganh
+              AND ($hk IS NULL OR
+                   toInteger(coalesce(r.semester, c.semester)) = toInteger($hk))
+            RETURN DISTINCT c.code AS code, c.name AS name,
+                   coalesce(r.credits, c.credits) AS tc,
+                   coalesce(r.semester, c.semester) AS hk,
+                   r.course_type AS loai_mon
+            ORDER BY toInteger(hk), name, code
             """
-            hk_val = str(hoc_ky) if hoc_ky else '1' 
-            
-            # Xóa bỏ hàm .upper() ở biến nganh
-            results = session.run(cypher, nganh=nganh, hk=hk_val)
+            results = session.run(cypher, nganh=nganh, hk=hoc_ky)
             return [dict(r) for r in results]
         
     def query_overview(self):

@@ -4,6 +4,7 @@ import os
 import json
 from dotenv import load_dotenv
 import time
+from roadmap import build_routing_instruction
  
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -61,12 +62,12 @@ university_tools = types.Tool(
         ),
         types.FunctionDeclaration(
             name="query_roadmap",
-            description="Sử dụng khi sinh viên hỏi về lộ trình, hoặc danh sách các môn học của một ngành học cụ thể trong một học kỳ.",
+            description="Lấy toàn bộ chương trình đào tạo/lộ trình học theo từng học kỳ của một ngành, hoặc các môn trong một kỳ cụ thể. Không dùng cho tư vấn hướng nghề nghiệp.",
             parameters=types.Schema(
                 type="OBJECT",
                 properties={
                     "ten_nganh": types.Schema(type="STRING", description="Tên ngành học đầy đủ bằng tiếng Việt (VD: Công nghệ thông tin, Tâm lý học)"),
-                    "hoc_ky": types.Schema(type="STRING", description="Học kỳ mà sinh viên muốn hỏi (VD: 1, 2, 3). Trả về '1' nếu sinh viên không nói rõ.")
+                    "hoc_ky": types.Schema(type="STRING", description="Số học kỳ cụ thể (VD: '1', '2', '3'). Trả về 'ALL' khi không chỉ rõ kỳ, hỏi toàn khóa hoặc từng học kỳ; không mặc định '1'.")
                 },
                 required=["ten_nganh", "hoc_ky"]
             )
@@ -96,10 +97,11 @@ university_tools = types.Tool(
     ]
 )
 
-def determine_action(message, retries=3):
+def determine_action(message, retries=3, major_names=None):
     """Gọi AI để phân tích câu hỏi và trả về Tên hàm & Tham số cần thực thi."""
     config = types.GenerateContentConfig(
         tools=[university_tools],
+        system_instruction=build_routing_instruction(message, major_names or []),
         temperature=0.1 # Nhiệt độ thấp để AI chọn hàm chuẩn xác nhất
     )
     

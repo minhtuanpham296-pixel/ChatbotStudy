@@ -152,7 +152,10 @@ def load_data_to_neo4j():
             WITH row WHERE row.major <> ""
             MATCH (c:Course {code: row.code})
             MERGE (m:Major {name: row.major}) // Tạo nút Ngành
-            MERGE (c)-[:THUOC_NGANH]->(m)     // Kéo mũi tên quan hệ
+            MERGE (c)-[r:THUOC_NGANH]->(m)
+            SET r.semester = row.semester,
+                r.credits = row.credits,
+                r.course_type = row.type
         """, rows=all_courses)
 
     print(f"✅ Xong! Đã nạp {len(all_courses)} nút và {len(all_prerequisites)} quan hệ.")
