@@ -7,6 +7,9 @@ import uvicorn
 import json
 
 app = FastAPI()
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 class ChatMessage(BaseModel):
     message: str

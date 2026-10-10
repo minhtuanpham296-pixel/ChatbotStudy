@@ -1,0 +1,9 @@
+streamlit
+requests
+fastapi
+uvicorn[standard]
+neo4j
+google-genai
+python-dotenv
+pandas
+openpyxl

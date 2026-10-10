@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+*credentials*
+*Credentials*
+.streamlit/secrets.toml
+venv/
+.venv/
+__pycache__/
+*.pyc

@@ -6,10 +6,14 @@ from neo4j import GraphDatabase
 from dotenv import load_dotenv
 
 # 1. Load cấu hình từ file .env
-load_dotenv()
+from pathlib import Path
+load_dotenv(Path(__file__).resolve().parent / ".env", override = True,)
 
-URI = "bolt://localhost:7687"
-AUTH = ("neo4j", "12345678")
+URI = os.environ["NEO4J_URI"].strip()
+AUTH = (
+    os.environ["NEO4J_USER"].strip(),
+    os.environ["NEO4J_PASSWORD"],
+)
 
 MAJOR_MAPPING = {
     "CNTT": "Công nghệ thông tin",
@@ -56,7 +60,16 @@ MAJOR_MAPPING = {
 }
 
 def load_data_to_neo4j():
+    print("File cấu hình:", Path(__file__).resolve().parent / ".env")
+    print("Đang kết nối đến:", URI)
+    print("Username:", AUTH[0])
+    print("Có mật khẩu:", bool(AUTH[1]))
+
     driver = GraphDatabase.driver(URI, auth=AUTH)
+    driver.verify_connectivity()
+    print("Kết nối Neo4j thành công!")
+
+    # Giữ nguyên phần nhập dữ liệu bên dưới
     file_list = glob.glob("data/*.xlsx")
     
     if not file_list: return

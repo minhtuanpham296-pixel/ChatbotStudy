@@ -6,11 +6,14 @@ load_dotenv()
 
 class Neo4jManager:
     def __init__(self):
-        # Lấy cấu hình từ .env
-        uri = os.getenv("NEO4J_URI") or "bolt://localhost:7687"
-        user = os.getenv("NEO4J_USER") or "neo4j"
-        password = os.getenv("NEO4J_PASSWORD") or "12345678"
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        uri = os.environ["NEO4J_URI"]
+        user = os.environ["NEO4J_USER"]
+        password = os.environ["NEO4J_PASSWORD"]
+
+        self.driver = GraphDatabase.driver(
+            uri,
+            auth=(user, password),
+    )   
 
     def close(self):
         self.driver.close()
