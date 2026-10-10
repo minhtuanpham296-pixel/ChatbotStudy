@@ -94,18 +94,10 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn vào đây..."):
                 
                 for line in res.iter_lines():
                     if line:
-                        try:
-                            data = json.loads(line.decode('utf-8'))
-                        except (json.JSONDecodeError, UnicodeDecodeError):
-                            st.error("Backend trả dữ liệu không đúng định dạng JSON. Kiểm tra Logs trên Render.")
-                            st.stop()
-                        if not isinstance(data, dict):
-                            st.error("Backend trả dữ liệu không đúng định dạng sự kiện chatbot.")
-                            st.stop()
-                        event_type = data.get("type")
-                        if event_type == "debug":
+                        data = json.loads(line.decode('utf-8'))
+                        if data["type"] == "debug":
                             debug_data = data 
-                        elif event_type == "chunk" and isinstance(data.get("text"), str):
+                        elif data["type"] == "chunk":
                             full_answer += data["text"]
                             
                             # LỌC THẺ <think>: Ẩn mọi thứ từ <think> đến </think>
@@ -114,10 +106,6 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn vào đây..."):
                             
                             # Chỉ in ra màn hình phần text đã lọc
                             placeholder.markdown(display_text + " ▌") 
-                        else:
-                            st.error("Backend trả sự kiện không hợp lệ hoặc thông báo lỗi.")
-                            st.json(data)
-                            st.stop()
                 
                 # Cập nhật lần cuối: Xóa con trỏ nhấp nháy
                 final_display = re.sub(r'<think>.*?(</think>|$)', '', full_answer, flags=re.DOTALL).strip()
@@ -126,14 +114,13 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn vào đây..."):
                 # Lưu vào lịch sử chat (chỉ lưu phần final_display để các câu chat sau không bị rác)
                 st.session_state.messages.append({"role": "assistant", "content": final_display})
             else:
-                st.error(f"Lỗi từ server FastAPI (HTTP {res.status_code}). Kiểm tra Logs trên Render.")
+                st.error("Lỗi từ server FastAPI!")
         except requests.exceptions.ConnectionError:
-            st.error("Không kết nối được máy chủ. Bạn vui lòng thử lại sau.")
+            st.error("🔌 Mất kết nối! Bạn đã bật server `main.py` chưa?")
         except requests.exceptions.Timeout:
             st.error("Máy chủ phản hồi quá lâu. Bạn vui lòng thử lại.")
         except requests.exceptions.RequestException:
-            st.error("Có lỗi khi gửi yêu cầu đến máy chủ.") 
-             
+            st.error("Có lỗi khi gửi yêu cầu đến máy chủ.")        
 #         # 1. Khởi tạo biến lưu tóm tắt nếu chưa có
 # if "chat_summary" not in st.session_state:
 #     st.session_state.chat_summary = ""

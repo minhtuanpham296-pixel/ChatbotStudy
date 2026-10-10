@@ -5,7 +5,6 @@ from database import db
 from ai_service import determine_action, get_final_answer_stream
 import uvicorn
 import json
-from roadmap import normalize_semester, resolve_major, roadmap_chunks
 
 app = FastAPI()
 @app.get("/health")
@@ -18,41 +17,11 @@ class ChatMessage(BaseModel):
 @app.post("/ask-ai-stream")
 async def ask_ai_stream(payload: ChatMessage):
     # 1. Để AI TỰ ĐỘNG quyết định hàm cần gọi (Function Calling)
-    overview = db.query_overview()
-    major_names = overview[0].get("danh_sach_nganh", []) if overview else []
-    action = determine_action(payload.message, major_names=major_names)
+    action = determine_action(payload.message)
     intent = action.get("intent", "NONE")
     args = action.get("args", {})
     
     knowledge = []
-
-    if intent == "query_roadmap":
-        requested = str(args.get("ten_nganh") or "").strip()
-        matches = resolve_major(requested, major_names)
-        courses = []
-        semester = None
-        if not requested:
-            answer = "Bạn muốn xem lộ trình học của ngành nào?"
-        elif not matches:
-            answer = f"Mình chưa tìm thấy ngành '{requested}' trong dữ liệu. Bạn kiểm tra lại tên ngành nhé."
-        elif len(matches) > 1:
-            answer = "Bạn muốn xem ngành nào trong các ngành sau?\n\n" + "\n".join(f"- {name}" for name in matches)
-        else:
-            try:
-                semester = normalize_semester(args.get("hoc_ky"))
-            except ValueError:
-                answer = "Bạn muốn xem toàn khóa hay học kỳ cụ thể nào? Vui lòng nhập số học kỳ."
-            else:
-                courses = db.query_roadmap(matches[0], semester)
-                answer = "Mình chưa có dữ liệu môn học cho ngành/học kỳ bạn yêu cầu."
-
-        def event_stream_roadmap():
-            yield json.dumps({"type": "debug", "extracted_data": action, "source": courses}, ensure_ascii=False) + "\n"
-            chunks = roadmap_chunks(matches[0], courses, semester) if courses else [answer]
-            for chunk in chunks:
-                yield json.dumps({"type": "chunk", "text": chunk}, ensure_ascii=False) + "\n"
-
-        return StreamingResponse(event_stream_roadmap(), media_type="application/x-ndjson")
     
     # === NHÁNH 1: TRẢ LỜI TRỰC TIẾP (BYPASS AI) ===
     if intent == "query_overview":
@@ -72,6 +41,8 @@ async def ask_ai_stream(payload: ChatMessage):
     # === NHÁNH 2: GỌI HÀM DATABASE THEO YÊU CẦU CỦA AI ===
     if intent == "query_knowledge":
         knowledge = db.query_knowledge(args.get("ten_mon", ""))
+    elif intent == "query_roadmap":
+        knowledge = db.query_roadmap(args.get("ten_nganh", ""), args.get("hoc_ky", "1"))
     elif intent == "query_prerequisite_courses":
         knowledge = db.query_prerequisite_courses_by_major(args.get("ten_nganh", ""))
     elif intent == "query_specialization_electives":
@@ -94,3 +65,30 @@ async def ask_ai_stream(payload: ChatMessage):
     print(json.dumps(knowledge, indent=2, ensure_ascii=False))
     print("="*50 + "\n")
     # =========================================================
+    
+    # Chuẩn hóa ngữ cảnh thành chuỗi JSON để AI tiếp thu tốt nhất
+    if knowledge:
+        json_data = json.dumps(knowledge, ensure_ascii=False)
+        # Gắn nhãn khẳng định 100% dữ liệu này là đúng trọng tâm để AI hết sợ
+        context = f"Dữ liệu hệ thống ĐÃ XÁC NHẬN thuộc về ngành/môn mà sinh viên đang hỏi. Hãy đọc bảng sau: {json_data}"
+    else:
+        context = "Ngữ cảnh trống."
+    
+    def event_stream():
+        # Dữ liệu debug lúc này sẽ hiển thị tên hàm và các tham số mà AI tự động bắt được
+        yield json.dumps({
+            "type": "debug", 
+            "extracted_data": action, 
+            "source": knowledge
+        }, ensure_ascii=False) + "\n"
+        
+        for chunk in get_final_answer_stream(payload.message, context):
+            yield json.dumps({
+                "type": "chunk", 
+                "text": chunk.replace('.0', '')
+            }, ensure_ascii=False) + "\n"
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
