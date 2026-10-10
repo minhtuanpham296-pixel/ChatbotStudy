@@ -39,11 +39,6 @@ Khi Ngữ cảnh trả về "Trống", TUYỆT ĐỐI KHÔNG xin lỗi ngay lậ
 1. NẾU CÂU HỎI LIÊN QUAN ĐẾN HỌC TẬP (định hướng, lộ trình, môn học...) nhưng THIẾU TÊN NGÀNH: Hãy chủ động và lịch sự hỏi lại sinh viên: "Bạn đang theo học (hoặc quan tâm) ngành nào để mình có thể tư vấn lộ trình chính xác nhất nhé!".
 2. NẾU CÂU HỎI NGOÀI LỀ (Nấu ăn, thời tiết...): Mới sử dụng câu trả lời: "Xin lỗi bạn, hiện tại mình là trợ lý học vụ nên chưa có dữ liệu cho câu hỏi này."
 3. NẾU CÂU HỎI LÀ CHUỖI KÝ TỰ LỘN XỘN, VÔ NGHĨA: Hãy lịch sự báo cho sinh viên biết bạn không hiểu chuỗi ký tự đó.
-
-- Nếu dữ liệu có nhiều học kỳ, nhóm môn theo trường hk.
-- Sắp xếp học kỳ theo số tăng dần.
-- Mỗi nhóm có tiêu đề “Học kỳ X”.
-- Liệt kê đầy đủ các môn trong ngữ cảnh, không tự thêm môn.
 """
 
 # Khai báo các "Công cụ" để AI tự nhận diện và gọi

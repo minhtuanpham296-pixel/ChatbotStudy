@@ -114,7 +114,8 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn vào đây..."):
                 # Lưu vào lịch sử chat (chỉ lưu phần final_display để các câu chat sau không bị rác)
                 st.session_state.messages.append({"role": "assistant", "content": final_display})
             else:
-                st.error("Lỗi từ server FastAPI!")
+                st.error(f"Lỗi FastAPI — HTTP {res.status_code}")
+                st.code(res.text[:2000], language="text")             
         except requests.exceptions.ConnectionError:
             st.error("🔌 Mất kết nối! Bạn đã bật server `main.py` chưa?")
         except requests.exceptions.Timeout:
