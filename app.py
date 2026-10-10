@@ -2,6 +2,12 @@ import streamlit as st
 import requests
 import json
 import re # Thêm thư viện re để xử lý chuỗi
+import os
+
+API_BASE_URL = os.getenv(
+    "API_BASE_URL",
+    "http://127.0.0.1:8000",
+).rstrip("/")
 
 st.set_page_config(page_title="Trợ lý Học vụ AI", page_icon="🎓")
 st.title("🎓 Trợ lý Tư vấn Học vụ Đa Ngành")
@@ -74,7 +80,12 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn vào đây..."):
 
     with st.chat_message("assistant"):
         try:
-            res = requests.post("http://127.0.0.1:8000/ask-ai-stream", json={"message": enhanced_prompt}, stream=True)
+            res = requests.post(
+            f"{API_BASE_URL}/ask-ai-stream",
+            json={"message": enhanced_prompt},
+            stream=True,
+            timeout=(15, 180),
+        )
             
             if res.status_code == 200:
                 placeholder = st.empty()
@@ -105,55 +116,59 @@ if prompt := st.chat_input("Nhập câu hỏi của bạn vào đây..."):
             else:
                 st.error("Lỗi từ server FastAPI!")
         except requests.exceptions.ConnectionError:
-            st.error("🔌 Mất kết nối! Bạn đã bật server `main.py` chưa?")
-            
-        # 1. Khởi tạo biến lưu tóm tắt nếu chưa có
-if "chat_summary" not in st.session_state:
-    st.session_state.chat_summary = ""
+            st.error("Không kết nối được máy chủ. Bạn vui lòng thử lại sau.")
+        except requests.exceptions.Timeout:
+            st.error("Máy chủ phản hồi quá lâu. Bạn vui lòng thử lại.")
+        except requests.exceptions.RequestException:
+            st.error("Có lỗi khi gửi yêu cầu đến máy chủ.") 
+             
+#         # 1. Khởi tạo biến lưu tóm tắt nếu chưa có
+# if "chat_summary" not in st.session_state:
+#     st.session_state.chat_summary = ""
 
-# 2. Hàm nhờ AI tóm tắt (Bạn có thể gọi một API riêng hoặc dùng chính hàm hiện tại)
-def summarize_context(old_messages):
-    if not old_messages:
-        return st.session_state.chat_summary
+# # 2. Hàm nhờ AI tóm tắt (Bạn có thể gọi một API riêng hoặc dùng chính hàm hiện tại)
+# def summarize_context(old_messages):
+#     if not old_messages:
+#         return st.session_state.chat_summary
     
-    # Tạo prompt yêu cầu AI tóm tắt ngắn gọn
-    history_to_compress = "\n".join([f"{m['role']}: {m['content']}" for m in old_messages])
-    summarize_prompt = (
-        f"Hãy tóm tắt nội dung chính của cuộc đối thoại sau đây trong tối đa 2 câu. "
-        f"Chỉ tập trung vào: Tên ngành, định hướng sở thích, hoặc các lưu ý đặc biệt của sinh viên. "
-        f"Nội dung cũ: {st.session_state.chat_summary}\n"
-        f"Nội dung mới cần thêm vào: {history_to_compress}"
-    )
+#     # Tạo prompt yêu cầu AI tóm tắt ngắn gọn
+#     history_to_compress = "\n".join([f"{m['role']}: {m['content']}" for m in old_messages])
+#     summarize_prompt = (
+#         f"Hãy tóm tắt nội dung chính của cuộc đối thoại sau đây trong tối đa 2 câu. "
+#         f"Chỉ tập trung vào: Tên ngành, định hướng sở thích, hoặc các lưu ý đặc biệt của sinh viên. "
+#         f"Nội dung cũ: {st.session_state.chat_summary}\n"
+#         f"Nội dung mới cần thêm vào: {history_to_compress}"
+#     )
     
-    try:
-        # Gọi API (Dùng mode không stream để lấy kết quả nhanh)
-        res = requests.post("http://127.0.0.1:8000/ask-ai-stream", json={"message": summarize_prompt})
-        # Ở đây bạn có thể tối ưu bằng cách tạo một Endpoint riêng cho tóm tắt ở FastAPI
-        # Nhưng để nhanh, ta có thể dùng kết quả từ AI trả về.
-        return res.text # Giả định lấy được chuỗi tóm tắt
-    except:
-        return st.session_state.chat_summary
+#     try:
+#         # Gọi API (Dùng mode không stream để lấy kết quả nhanh)
+#         res = requests.post("http://127.0.0.1:8000/ask-ai-stream", json={"message": summarize_prompt})
+#         # Ở đây bạn có thể tối ưu bằng cách tạo một Endpoint riêng cho tóm tắt ở FastAPI
+#         # Nhưng để nhanh, ta có thể dùng kết quả từ AI trả về.
+#         return res.text # Giả định lấy được chuỗi tóm tắt
+#     except:
+#         return st.session_state.chat_summary
 
-# 3. Logic xử lý trong Chat Input
-if prompt := st.chat_input("Nhập câu hỏi..."):
-    # ... (phần hiển thị user message giữ nguyên) ...
+# # 3. Logic xử lý trong Chat Input
+# if prompt := st.chat_input("Nhập câu hỏi..."):
+#     # ... (phần hiển thị user message giữ nguyên) ...
 
-    # KIỂM TRA ĐỘ DÀI LỊCH SỬ ĐỂ NÉN
-    THRESHOLD = 6 # Nếu quá 6 tin nhắn thì bắt đầu nén các tin nhắn cũ nhất
-    if len(st.session_state.messages) > THRESHOLD:
-        # Lấy các tin nhắn cũ (trừ 4 tin nhắn cuối cùng ra)
-        to_compress = st.session_state.messages[:-4]
-        # Cập nhật tóm tắt mới
-        st.session_state.chat_summary = summarize_context(to_compress)
-        # (Tùy chọn) Có thể xóa bớt messages cũ để nhẹ session_state
-        # st.session_state.messages = st.session_state.messages[-4:]
+#     # KIỂM TRA ĐỘ DÀI LỊCH SỬ ĐỂ NÉN
+#     THRESHOLD = 6 # Nếu quá 6 tin nhắn thì bắt đầu nén các tin nhắn cũ nhất
+#     if len(st.session_state.messages) > THRESHOLD:
+#         # Lấy các tin nhắn cũ (trừ 4 tin nhắn cuối cùng ra)
+#         to_compress = st.session_state.messages[:-4]
+#         # Cập nhật tóm tắt mới
+#         st.session_state.chat_summary = summarize_context(to_compress)
+#         # (Tùy chọn) Có thể xóa bớt messages cũ để nhẹ session_state
+#         # st.session_state.messages = st.session_state.messages[-4:]
 
-    # ĐÓNG GÓI PROMPT GỬI ĐI
-    recent_history = st.session_state.messages[-4:]
-    history_text = "\n".join([f"{m['role']}: {m['content']}" for m in recent_history])
+#     # ĐÓNG GÓI PROMPT GỬI ĐI
+#     recent_history = st.session_state.messages[-4:]
+#     history_text = "\n".join([f"{m['role']}: {m['content']}" for m in recent_history])
     
-    enhanced_prompt = (
-        f"TÓM TẮT BỐI CẢNH TRƯỚC ĐÓ: {st.session_state.chat_summary}\n\n"
-        f"CHI TIẾT GẦN NHẤT:\n{history_text}\n"
-        f"CÂU HỎI MỚI: {prompt}"
-    )
+#     enhanced_prompt = (
+#         f"TÓM TẮT BỐI CẢNH TRƯỚC ĐÓ: {st.session_state.chat_summary}\n\n"
+#         f"CHI TIẾT GẦN NHẤT:\n{history_text}\n"
+#         f"CÂU HỎI MỚI: {prompt}"
+#     )
