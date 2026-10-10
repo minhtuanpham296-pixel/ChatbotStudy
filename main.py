@@ -44,26 +44,17 @@ async def ask_ai_stream(payload: ChatMessage):
     # === NHÁNH 2: GỌI HÀM DATABASE THEO YÊU CẦU CỦA AI ===
     if intent == "query_knowledge":
         knowledge = db.query_knowledge(args.get("ten_mon", ""))
-    elif intent == "query_roadmap":
-        knowledge = db.query_roadmap(args.get("ten_nganh", ""), args.get("hoc_ky"))
+        elif intent == "query_roadmap":
+        ten_nganh = args.get("ten_nganh", "")
+        hoc_ky = args.get("hoc_ky")
+
+        # Không chỉ rõ học kỳ hoặc hỏi toàn khóa
         if hoc_ky is None or str(hoc_ky).strip().upper() in ("", "ALL"):
             hoc_ky = None
         else:
             hoc_ky = str(hoc_ky).strip()
-        try:
-            print(
-                f"Truy vấn lộ trình: ngành={args.get('ten_nganh', '')!r}, kỳ={args.get('hoc_ky', '')!r}",
-                flush=True,
-            )
-            knowledge = db.query_roadmap(args.get("ten_nganh", ""), args.get("hoc_ky"))
-            print(f"Số môn tìm được: {len(knowledge)}", flush=True)
 
-        except Exception:
-            traceback.print_exc()
-            raise HTTPException(
-        status_code=500,
-        detail="Lỗi truy vấn lộ trình Neo4j. Xem traceback trong Render Logs.",
-    )
+        knowledge = db.query_roadmap(ten_nganh, hoc_ky)
     elif intent == "query_prerequisite_courses":
         knowledge = db.query_prerequisite_courses_by_major(args.get("ten_nganh", ""))
     elif intent == "query_specialization_electives":
