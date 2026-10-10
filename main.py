@@ -42,7 +42,12 @@ async def ask_ai_stream(payload: ChatMessage):
     if intent == "query_knowledge":
         knowledge = db.query_knowledge(args.get("ten_mon", ""))
     elif intent == "query_roadmap":
-        knowledge = db.query_roadmap(args.get("ten_nganh", ""), args.get("hoc_ky", "1"))
+        knowledge = db.query_roadmap(args.get("ten_nganh", ""), args.get("hoc_ky"))
+        if hoc_ky is None or str(hoc_ky).strip().upper() in ("", "ALL"):
+            hoc_ky = None
+        else:
+            hoc_ky = str(hoc_ky).strip()
+        knowledge = db.query_roadmap("ten_nganh", "hoc_ky")
     elif intent == "query_prerequisite_courses":
         knowledge = db.query_prerequisite_courses_by_major(args.get("ten_nganh", ""))
     elif intent == "query_specialization_electives":

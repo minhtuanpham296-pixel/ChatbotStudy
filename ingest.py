@@ -70,9 +70,13 @@ def load_data_to_neo4j():
     print("Kết nối Neo4j thành công!")
 
     # Giữ nguyên phần nhập dữ liệu bên dưới
-    file_list = glob.glob("data/*.xlsx")
-    
-    if not file_list: return
+    data_dir = Path(__file__).resolve().parent / "data"
+    file_list = sorted(glob.glob(str(data_dir / "*.xlsx")))
+
+    if not file_list:
+        print("Không tìm thấy file Excel trong:", data_dir)
+        driver.close()
+        return
 
     # Gom tất cả dữ liệu từ 21 file vào 1 danh sách duy nhất để xử lý cực nhanh
     all_courses = []
@@ -146,14 +150,18 @@ def load_data_to_neo4j():
             MERGE (c)-[:THUOC_KHOI]->(k)            // Kéo mũi tên quan hệ
         """, rows=all_courses)
         
-        # THÊM ĐOẠN NÀY: Nạp quan hệ Ngành học
+        # Nạp quan hệ ngành và thông tin môn học theo từng ngành
         session.run("""
             UNWIND $rows AS row
             WITH row WHERE row.major <> ""
             MATCH (c:Course {code: row.code})
-            MERGE (m:Major {name: row.major}) // Tạo nút Ngành
-            MERGE (c)-[:THUOC_NGANH]->(m)     // Kéo mũi tên quan hệ
-        """, rows=all_courses)
+            MERGE (m:Major {name: row.major})
+            MERGE (c)-[r:THUOC_NGANH]->(m)
+            SET r.semester = row.semester,
+                r.credits = row.credits,
+                r.course_type = row.type,
+                r.knowledge_block = row.kb
+        """, rows=all_courses).consume()
 
     print(f"✅ Xong! Đã nạp {len(all_courses)} nút và {len(all_prerequisites)} quan hệ.")
     driver.close()

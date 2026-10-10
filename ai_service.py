@@ -39,6 +39,11 @@ Khi Ngữ cảnh trả về "Trống", TUYỆT ĐỐI KHÔNG xin lỗi ngay lậ
 1. NẾU CÂU HỎI LIÊN QUAN ĐẾN HỌC TẬP (định hướng, lộ trình, môn học...) nhưng THIẾU TÊN NGÀNH: Hãy chủ động và lịch sự hỏi lại sinh viên: "Bạn đang theo học (hoặc quan tâm) ngành nào để mình có thể tư vấn lộ trình chính xác nhất nhé!".
 2. NẾU CÂU HỎI NGOÀI LỀ (Nấu ăn, thời tiết...): Mới sử dụng câu trả lời: "Xin lỗi bạn, hiện tại mình là trợ lý học vụ nên chưa có dữ liệu cho câu hỏi này."
 3. NẾU CÂU HỎI LÀ CHUỖI KÝ TỰ LỘN XỘN, VÔ NGHĨA: Hãy lịch sự báo cho sinh viên biết bạn không hiểu chuỗi ký tự đó.
+
+- Nếu dữ liệu có nhiều học kỳ, nhóm môn theo trường hk.
+- Sắp xếp học kỳ theo số tăng dần.
+- Mỗi nhóm có tiêu đề “Học kỳ X”.
+- Liệt kê đầy đủ các môn trong ngữ cảnh, không tự thêm môn.
 """
 
 # Khai báo các "Công cụ" để AI tự nhận diện và gọi
@@ -61,12 +66,15 @@ university_tools = types.Tool(
         ),
         types.FunctionDeclaration(
             name="query_roadmap",
-            description="Sử dụng khi sinh viên hỏi về lộ trình, hoặc danh sách các môn học của một ngành học cụ thể trong một học kỳ.",
+            description="Sử dụng khi sinh viên hỏi về lộ trình, hoặc danh sách các môn học của một ngành học cụ thể của tất cả học kỳ.",
             parameters=types.Schema(
                 type="OBJECT",
                 properties={
                     "ten_nganh": types.Schema(type="STRING", description="Tên ngành học đầy đủ bằng tiếng Việt (VD: Công nghệ thông tin, Tâm lý học)"),
-                    "hoc_ky": types.Schema(type="STRING", description="Học kỳ mà sinh viên muốn hỏi (VD: 1, 2, 3). Trả về '1' nếu sinh viên không nói rõ.")
+                    "hoc_ky": types.Schema(type="STRING", description="Nếu sinh viên hỏi một học kỳ cụ thể, trả số học kỳ "
+        "dưới dạng chuỗi, ví dụ '1', '2', '3'. "
+        "Nếu không chỉ rõ học kỳ hoặc hỏi toàn khóa, các học kỳ, "
+        "từng học kỳ, trả 'ALL'. Không mặc định học kỳ 1.")
                 },
                 required=["ten_nganh", "hoc_ky"]
             )
