@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -5,6 +7,7 @@ from database import db
 from ai_service import determine_action, get_final_answer_stream
 import uvicorn
 import json
+from fastapi import HTTPException
 
 app = FastAPI()
 @app.get("/health")
@@ -47,7 +50,20 @@ async def ask_ai_stream(payload: ChatMessage):
             hoc_ky = None
         else:
             hoc_ky = str(hoc_ky).strip()
-        knowledge = db.query_roadmap("ten_nganh", "hoc_ky")
+        try:
+            print(
+                f"Truy vấn lộ trình: ngành={args.get('ten_nganh', '')!r}, kỳ={args.get('hoc_ky', '')!r}",
+                flush=True,
+            )
+            knowledge = db.query_roadmap(args.get("ten_nganh", ""), args.get("hoc_ky"))
+            print(f"Số môn tìm được: {len(knowledge)}", flush=True)
+
+        except Exception:
+            traceback.print_exc()
+            raise HTTPException(
+        status_code=500,
+        detail="Lỗi truy vấn lộ trình Neo4j. Xem traceback trong Render Logs.",
+    )
     elif intent == "query_prerequisite_courses":
         knowledge = db.query_prerequisite_courses_by_major(args.get("ten_nganh", ""))
     elif intent == "query_specialization_electives":
